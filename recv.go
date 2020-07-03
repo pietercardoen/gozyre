@@ -320,6 +320,7 @@ func recvShout(msg *C.zmsg_t) (m Shout, err error) {
 			unsafe.Pointer(C.zframe_data(p)),
 			C.int(C.zframe_size(p)),
 		)
+		defer C.free(unsafe.Pointer(p))
 	}
 
 	m = Shout{

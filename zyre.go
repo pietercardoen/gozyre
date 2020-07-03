@@ -139,7 +139,9 @@ func (z *Node) SetEndpoint(format string, a ...interface{}) error {
 		panic("Node.SetEndpoint: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
-	rc := C._zyre_set_endpoint(z.ptr, C.CString(s))
+	cs := C.CString(s)
+	rc := C._zyre_set_endpoint(z.ptr, cs)
+	C.free(unsafe.Pointer(cs))
 	if rc == -1 {
 		return fmt.Errorf("Node.SetEndpoint: returned -1")
 	}
@@ -155,7 +157,9 @@ func (z *Node) GossipBind(format string, a ...interface{}) {
 		panic("Node.GossipBind: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
-	C._zyre_gossip_bind(z.ptr, C.CString(s))
+	cs := C.CString(s)
+	C._zyre_gossip_bind(z.ptr, cs)
+	C.free(unsafe.Pointer(cs))
 }
 
 // GossipConnect - Set-up gossip discovery of other nodes. A node may connect to multiple
@@ -166,7 +170,9 @@ func (z *Node) GossipConnect(format string, a ...interface{}) {
 		panic("Node.GossipConnect: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
-	C._zyre_gossip_connect(z.ptr, C.CString(s))
+	cs := C.CString(s)
+	C._zyre_gossip_connect(z.ptr, cs)
+	C.free(unsafe.Pointer(cs))
 }
 
 // Start - starts a node, after setting header values. When you start a node it
@@ -199,7 +205,9 @@ func (z *Node) Join(room string) error {
 	if z.ptr == nil {
 		panic("Node.Join: z.ptr is null")
 	}
-	rc := C.zyre_join(z.ptr, C.CString(room))
+	croom := C.CString(room)
+	rc := C.zyre_join(z.ptr, croom)
+	C.free(unsafe.Pointer(croom))
 	if rc == -1 {
 		return ErrJoin
 	}
@@ -211,7 +219,9 @@ func (z *Node) Leave(room string) error {
 	if z.ptr == nil {
 		panic("Node.Leave: z.ptr is null")
 	}
-	rc := C.zyre_leave(z.ptr, C.CString(room))
+	croom := C.CString(room)
+	rc := C.zyre_leave(z.ptr, croom)
+	C.free(unsafe.Pointer(croom))
 	if rc == -1 {
 		return ErrLeave
 	}
@@ -284,10 +294,12 @@ func (z *Node) Whisper(peer string, data ...[]byte) error {
 			return fmt.Errorf("Node.Whisper: can't add memory buffer")
 		}
 	}
+	cpeer := C.CString(peer)
 	rc := C.zyre_whisper(
 		z.ptr,
-		C.CString(peer),
+		cpeer,
 		&msg) // .... <- HERE
+	C.free(unsafe.Pointer(cpeer))
 	if rc == -1 {
 		return fmt.Errorf("Node.Whispers failed, returned -1")
 	}
@@ -300,10 +312,14 @@ func (z *Node) WhisperString(peer string, format string, a ...interface{}) error
 		panic("Node.Whispers: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
+	cpeer := C.CString(peer)
+	cs := C.CString(s)
 	rc := C._zyre_whispers(
 		z.ptr,
-		C.CString(peer),
-		C.CString(s))
+		cpeer,
+		cs)
+	C.free(unsafe.Pointer(cpeer))
+	C.free(unsafe.Pointer(cs))
 	if rc == -1 {
 		return fmt.Errorf("Node.Whispers failed, returned -1")
 	}
@@ -330,10 +346,12 @@ func (z *Node) Shout(group string, data ...[]byte) error {
 			return fmt.Errorf("Node.Whisper: can't add memory buffer")
 		}
 	}
+	cgroup := C.CString(group)
 	rc := C.zyre_shout(
 		z.ptr,
-		C.CString(group),
+		cgroup,
 		&msg) // ... <- HERE
+	C.free(unsafe.Pointer(cgroup))
 	if rc == -1 {
 		return fmt.Errorf("Node.Shout failed, returned -1")
 	}
@@ -346,10 +364,14 @@ func (z *Node) ShoutString(group string, format string, a ...interface{}) error 
 		panic("Node.Shouts: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
+	cgroup := C.CString(group)
+	cs := C.CString(s)
 	rc := C._zyre_shouts(
 		z.ptr,
-		C.CString(group),
-		C.CString(s))
+		cgroup,
+		cs)
+	C.free(unsafe.Pointer(cgroup))
+	C.free(unsafe.Pointer(cs))
 	if rc == -1 {
 		return fmt.Errorf("Node.Shouts failed, returned -1")
 	}
@@ -390,7 +412,9 @@ func (z *Node) PeersByGroup(group string) []string {
 	if z.ptr == nil {
 		panic("Node.PeersByGroup: z.ptr is null")
 	}
-	cpeers := C.zyre_peers_by_group(z.ptr, C.CString(group))
+	cgroup := C.CString(group)
+	cpeers := C.zyre_peers_by_group(z.ptr, cgroup)
+	C.free(unsafe.Pointer(cgroup))
 	return zlistTosliceAndDestroy(cpeers)
 }
 
@@ -408,7 +432,9 @@ func (z *Node) PeerAddress(peer string) (address string, ok bool) {
 	if z.ptr == nil {
 		panic("Node.PeerAddress: z.ptr is null")
 	}
-	caddress := C.zyre_peer_address(z.ptr, C.CString(peer))
+	cpeer := C.CString(peer)
+	caddress := C.zyre_peer_address(z.ptr, cpeer)
+	C.free(unsafe.Pointer(cpeer))
 	if caddress == nil {
 		ok = false
 		return
@@ -425,7 +451,11 @@ func (z *Node) PeerHeaderValue(peer string, key string) (value string, ok bool) 
 	if z.ptr == nil {
 		panic("Node.PeerHeaderValue: z.ptr is null")
 	}
-	cvalue := C.zyre_peer_header_value(z.ptr, C.CString(peer), C.CString(key))
+	cpeer := C.CString(peer)
+	ckey := C.CString(key)
+	cvalue := C.zyre_peer_header_value(z.ptr, cpeer,ckey)
+	C.free(unsafe.Pointer(cpeer))
+	C.free(unsafe.Pointer(ckey))
 	if cvalue == nil {
 		ok = false
 		return
