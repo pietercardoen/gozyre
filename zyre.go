@@ -327,7 +327,8 @@ func (z *Node) WhisperString(peer string, format string, a ...interface{}) error
 }
 
 // Shout - sends byte slice to a single peer specified as UUID string
-func (z *Node) Shout(group string, data ...[]byte) error {
+// ... is removed
+func (z *Node) Shout(group string, data []byte) error {
 	if z.ptr == nil {
 		panic("Node.Shout: z.ptr is null")
 	}
@@ -336,18 +337,22 @@ func (z *Node) Shout(group string, data ...[]byte) error {
 		return fmt.Errorf("Node.Shout: can't create zmsg_t")
 	}
 	// we do not defer as zmsg_t will get destroyed ...
-	for _, d := range data {
+	//for _, d := range data {
+		cdata := C.CBytes(data)
 		rc := C.zmsg_addmem(
 			msg,
-			C.CBytes(d),
+			cdata,
 			C.size_t(len(data)))
 		if rc == -1 {
 			C.zmsg_destroy(&msg)
+			C.free(unsafe.Pointer(cdata))
 			return fmt.Errorf("Node.Whisper: can't add memory buffer")
 		}
-	}
+		
+		C.free(unsafe.Pointer(cdata))
+	//}
 	cgroup := C.CString(group)
-	rc := C.zyre_shout(
+	rc = C.zyre_shout(
 		z.ptr,
 		cgroup,
 		&msg) // ... <- HERE
