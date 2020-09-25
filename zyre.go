@@ -351,6 +351,7 @@ func (z *Node) Shout(group string, data ...[]byte) error {
 		z.ptr,
 		cgroup,
 		&msg) // ... <- HERE
+	C.zmsg_destroy(&msg)
 	C.free(unsafe.Pointer(cgroup))
 	if rc == -1 {
 		return fmt.Errorf("Node.Shout failed, returned -1")
